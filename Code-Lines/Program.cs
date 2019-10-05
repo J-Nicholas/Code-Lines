@@ -15,26 +15,41 @@ namespace Code_Lines
         static List<string> extensions = new List<string> { ".cs", ".java", ".py", ".c", ".cpp", ".js" };
         static Dictionary<string, string> languages = new Dictionary<string, string>();
         static Dictionary<string, int> fileCount = new Dictionary<string, int>();
+        private static int directoryCount = 0;
+        private static int totalFileCount = 0;
 
         public static void Main(string[] args)
         {
             if (args.Length == 0)
             {
-                // TODO write a usage message
-                System.Console.WriteLine("Display help menu.");
+                Console.WriteLine("Please enter a directory's full path as a command-line argument.");
+                Console.WriteLine("Example:\n" + @"Code-Line C:\Users\<Your username>\Desktop");
+                Console.WriteLine("If your directory has spaces in the path, enclose entire path in quotation marks.");
+                Console.WriteLine("If you want to use the console's current directory, use:");
+                Console.WriteLine("Code-Lines -c\nPress any key to close...");
+                Console.ReadKey();
+                Environment.Exit(0);
             }
             else
             {
-                // Directory should be arg[0]
-                // DirectoryInfo info = new DirectoryInfo(args[0]);
+                // Directory should be arg[0] or if -c is passed, get directory that called the application
+                string rootDir = (args[0] == "-c" ? Directory.GetCurrentDirectory() : args[0]);
+
                 PopulateDictionaries();
-                string rootDir = args[0];
+                rootDir = rootDir.Replace("\"", "");
+
                 VerifyDirExists(rootDir);
                 ExpandDirectories(rootDir);
                 PrintResults();
+                Console.WriteLine("Press any key to close...");
+                Console.ReadKey();
+                Environment.Exit(0);
             }
         }
-
+        /// <summary>
+        /// Verify that directory is a real directory
+        /// </summary>
+        /// <param name="directory">Full path to directory being checked</param>
         static void VerifyDirExists(string directory)
         {
             DirectoryInfo dir = new DirectoryInfo(directory);
@@ -42,36 +57,59 @@ namespace Code_Lines
             {
                 if (!dir.Exists)
                 {
-                    System.Console.WriteLine("Error:\n" + dir.ToString() + "\nwas not found.");
+                    Console.WriteLine("Error:\n" + dir.ToString() + "\nwas not found.");
+                    Console.ReadKey();
                     Environment.Exit(1);
                 }
             }
             catch (DirectoryNotFoundException e)
             {
-                System.Console.WriteLine(e.Message);
+                Console.WriteLine(e.Message);
             }
         }
 
+        /// <summary>
+        /// Recursively gets all sub-directories of root and performs line counting of files with correct extensions.
+        /// </summary>
+        /// <param name="directory">Full path to directory being counted</param>
         static void ExpandDirectories(string directory)
         {
-            foreach (string dir in Directory.GetDirectories(directory))
+            try
             {
-                // System.Console.WriteLine(dir);
-                foreach (string file in Directory.GetFiles(dir))
+                foreach (string dir in Directory.GetDirectories(directory))
                 {
-                    FileInfo fileInfo = new FileInfo(file);
-                    if (extensions.Contains(fileInfo.Extension))
+                    directoryCount++;
+                    foreach (string file in Directory.GetFiles(dir))
                     {
-                        // TODO write function to read this file line by line and then adding it to dict
-                        linesCount[fileInfo.Extension] += GetLineCount(file);
-                        fileCount[fileInfo.Extension]++;
+                        Console.Write("\rDirectories checked: \t{0}\n", directoryCount);
+                        Console.Write("\rFiles checked: \t\t{0}", totalFileCount++);
+                        Console.CursorTop--;
+                        FileInfo fileInfo = new FileInfo(file);
+                        if (extensions.Contains(fileInfo.Extension))
+                        {
+                            linesCount[fileInfo.Extension] += GetLineCount(file);
+                            fileCount[fileInfo.Extension]++;
+                        }
                     }
-
+                    
+                    ExpandDirectories(dir);
                 }
-                ExpandDirectories(dir);
+            }
+            catch (Exception e) when ( e is PathTooLongException
+                || e is UnauthorizedAccessException )
+            {
+                // Do nothing and skip
+            }
+            catch (IOException e)
+            {
+                Console.WriteLine(e.Message);
             }
         }
 
+
+        /// <summary>
+        /// Initialise dictionaries with default values
+        /// </summary>
         static void PopulateDictionaries()
         {
             foreach (string ext in extensions)
@@ -88,6 +126,11 @@ namespace Code_Lines
             languages[".js"] = "JavaScript";
         }
 
+        /// <summary>
+        /// Reads a file line by line
+        /// </summary>
+        /// <param name="file">Name of file to be analysed</param>
+        /// <returns>Number of lines in the file</returns>
         static int GetLineCount(string file)
         {
             FileStream fs = new FileStream(file, FileMode.Open);
@@ -112,15 +155,22 @@ namespace Code_Lines
             return count;
         }
 
+        /// <summary>
+        /// Prints a formatted summary of results to the console
+        /// </summary>
         static void PrintResults()
         {
-            System.Console.WriteLine("Analysis:");
+            Console.CursorTop += 2;    // new line
+            Console.WriteLine("\r\nAnalysis:");
             foreach (KeyValuePair<string, int> entry in linesCount)
             {
-                System.Console.WriteLine("Total lines of {0, -20} {1, -7} {2}.",
-                 languages[entry.Key] + ":",
-                 entry.Value,
-                 "in " + fileCount[entry.Key] + " files");
+                if (entry.Value != 0)
+                {
+                    System.Console.WriteLine("Total lines of {0, -20} {1, -7} {2}.",
+                     languages[entry.Key] + ":",
+                     entry.Value,
+                     "in " + fileCount[entry.Key] + " files");
+                }
             }
         }
     }
