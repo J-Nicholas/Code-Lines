@@ -10,6 +10,9 @@ Alternatively: run `code-lines <path>` to specify a path. If path has spaces, su
 
 Example: `code-lines "C:\Users\<Your username>\Desktop\Folder with spaces\"`
 
+## Output
+![Output](https://i.imgur.com/aQmKJfF.png)
+
 ## Supported languages
 * C#
 * C
@@ -17,3 +20,6 @@ Example: `code-lines "C:\Users\<Your username>\Desktop\Folder with spaces\"`
 * Java
 * JavaScript
 * Python
+
+### Note
+Program will print out a line of analysis for every language that it found in its search
